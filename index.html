@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JavaScript Hoisting — Interview Notes</title>
+<style>
+  :root {
+    --bg: #0D0D0F;
+    --surface: #161619;
+    --surface2: #1E1E23;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #F0EEF8;
+    --muted: #8A8799;
+    --purple: #A78BFA;
+    --purple-dim: rgba(167,139,250,0.12);
+    --purple-dim2: rgba(167,139,250,0.06);
+    --green: #4ADE80;
+    --green-dim: rgba(74,222,128,0.1);
+    --red: #F87171;
+    --red-dim: rgba(248,113,113,0.1);
+    --amber: #FBBF24;
+    --amber-dim: rgba(251,191,36,0.1);
+    --blue: #60A5FA;
+    --blue-dim: rgba(96,165,250,0.1);
+    --mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border2);
+    padding: 2.5rem 3rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .header-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--purple);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .header h1 span { color: var(--purple); }
+  .header p {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 520px;
+  }
+  .badges {
+    display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+    letter-spacing: 0.04em;
+  }
+  .badge.purple { color: var(--purple); border-color: rgba(167,139,250,0.3); background: var(--purple-dim2); }
+  .badge.green { color: var(--green); border-color: rgba(74,222,128,0.3); background: var(--green-dim); }
+  .badge.amber { color: var(--amber); border-color: rgba(251,191,36,0.3); background: var(--amber-dim); }
+
+  /* LAYOUT */
+  .content { padding: 2rem 3rem 4rem; max-width: 900px; margin: 0 auto; }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--purple);
+    margin-bottom: 1rem;
+    margin-top: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* CONCEPT CARD */
+  .concept-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .concept-card.highlight {
+    border-color: rgba(167,139,250,0.25);
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(167,139,250,0.04) 100%);
+  }
+
+  /* DEFINITION BOX */
+  .definition {
+    background: var(--purple-dim2);
+    border-left: 3px solid var(--purple);
+    border-radius: 0 8px 8px 0;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .definition strong { color: var(--purple); font-weight: 600; }
+
+  /* STEPS */
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .step {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+  }
+  .step-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--purple);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .step p { font-size: 14px; color: var(--muted); }
+  .step strong { color: var(--text); font-weight: 500; }
+
+  /* CODE BLOCK */
+  .code-wrap {
+    background: #0A0A0C;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .code-header .label { color: var(--muted); }
+  .code-header .tag { color: var(--purple); }
+  pre {
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    color: #C9C2E8;
+  }
+  .c-kw { color: #C792EA; }
+  .c-fn { color: #82AAFF; }
+  .c-str { color: #C3E88D; }
+  .c-num { color: #F78C6C; }
+  .c-cmt { color: #546E7A; font-style: italic; }
+  .c-ok { color: var(--green); }
+  .c-err { color: var(--red); }
+  .c-hl { background: rgba(167,139,250,0.1); display: block; margin: 0 -1.4rem; padding: 0 1.4rem; }
+
+  /* RESULT PILL */
+  .result-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .result-line .icon { font-size: 10px; }
+  .result-ok { color: var(--green); }
+  .result-err { color: var(--red); }
+  .result-warn { color: var(--amber); }
+
+  /* TYPE GRID */
+  .type-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .type-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .type-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .type-name {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .type-name.var { color: #C792EA; }
+  .type-name.let { color: #82AAFF; }
+  .type-name.fn { color: var(--green); }
+  .type-name.expr { color: var(--amber); }
+  .type-name.cls { color: var(--red); }
+  .status-pills {
+    display: flex; gap: 6px;
+  }
+  .pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .pill.yes { background: var(--green-dim); color: var(--green); }
+  .pill.no { background: var(--red-dim); color: var(--red); }
+  .pill.partial { background: var(--amber-dim); color: var(--amber); }
+  .type-body { padding: 12px 16px; }
+  .type-desc { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .type-note {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: var(--mono);
+  }
+  .type-note.green { background: var(--green-dim); color: var(--green); }
+  .type-note.red { background: var(--red-dim); color: var(--red); }
+  .type-note.amber { background: var(--amber-dim); color: var(--amber); }
+
+  /* INTERVIEW QA */
+  .qa-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+  .qa-q {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .qa-q-icon {
+    width: 24px; height: 24px;
+    background: var(--purple-dim);
+    border: 1px solid rgba(167,139,250,0.3);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--purple);
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .qa-q p { font-size: 14px; font-weight: 500; color: var(--text); }
+  .qa-a {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .qa-a strong { color: var(--text); font-weight: 500; }
+  .qa-a .highlight-ans {
+    display: inline-block;
+    background: var(--purple-dim);
+    color: var(--purple);
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  /* CHEATSHEET TABLE */
+  .cheat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .cheat-table th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .cheat-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .cheat-table tr:last-child td { border-bottom: none; }
+  .cheat-table tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+  .cheat-table td:first-child { font-family: var(--mono); color: #C792EA; font-weight: 600; }
+
+  /* TIPS */
+  .tips-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .tip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .tip-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .tip strong { color: var(--text); display: block; margin-bottom: 2px; font-weight: 500; }
+
+  /* MEMORY CARD */
+  .memory-box {
+    background: linear-gradient(135deg, rgba(167,139,250,0.08), rgba(96,165,250,0.05));
+    border: 1px solid rgba(167,139,250,0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .memory-box .mem-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--purple); margin-bottom: 10px;
+  }
+  .memory-box .mem-text {
+    font-size: 18px; font-weight: 600;
+    color: var(--text); line-height: 1.5;
+  }
+  .memory-box .mem-text span { color: var(--purple); }
+  .memory-box .mem-sub {
+    margin-top: 8px; font-size: 13px; color: var(--muted);
+  }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 2rem;
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 600px) {
+    .header { padding: 1.5rem; }
+    .content { padding: 1.2rem 1.2rem 3rem; }
+    .steps { grid-template-columns: 1fr; }
+    .tips-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-label">JavaScript Concept Notes</div>
+  <h1>JavaScript <span>Hoisting</span></h1>
+  <p>Interview-ready notes — Hindi + Code examples ke saath. Ekdum detail mein, easy language mein.</p>
+  <div class="badges">
+    <div class="badge purple">Core Concept</div>
+    <div class="badge green">Interview Important</div>
+    <div class="badge amber">ES6 Ready</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- DEFINITION -->
+  <div class="section-title">Definition</div>
+  <div class="definition">
+    <strong>Hoisting</strong> ka matlab hai — JavaScript code run karne se <strong>pehle</strong>, engine poora code <strong>scan</strong> karta hai aur saari <strong>variable / function declarations</strong> ko memory mein <strong>upar (top) le jaata hai</strong>.<br><br>
+    Sirf <strong>declaration</strong> move hoti hai — <strong>value/initialization</strong> nahi. Value wahin rehti hai jahan tumne likhi hai.
+  </div>
+
+  <!-- 2 PHASES -->
+  <div class="section-title">JavaScript Execution Ke 2 Phases</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">⬡ PHASE 1 — Creation</div>
+      <p><strong>Pura code scan</strong> karo.<br>Saari declarations dhundho aur memory mein register karo. <strong>Variable = undefined</strong>, Functions = poori body.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">⬡ PHASE 2 — Execution</div>
+      <p>Code <strong>line by line</strong> chalao.<br>Values assign hoti hain, functions call hote hain, actual kaam hota hai yahan.</p>
+    </div>
+  </div>
+
+  <!-- VAR -->
+  <div class="section-title">1 — var Hoisting</div>
+  <div class="concept-card">
+    <div class="type-note amber" style="margin-bottom:12px">var → hoist hota hai + undefined se initialize hota hai</div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">Tumne likha</span><span class="tag">var</span></div>
+      <pre><span class="c-fn">console</span>.log(name);     <span class="c-cmt">// ???</span>
+<span class="c-kw">var</span> name = <span class="c-str">"Alice"</span>;
+<span class="c-fn">console</span>.log(name);     <span class="c-cmt">// ???</span></pre>
+      <div class="result-line result-warn"><span class="icon">▶</span> undefined</div>
+      <div class="result-line result-ok"><span class="icon">▶</span> "Alice"</div>
+    </div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">JavaScript ne actually kya kiya</span><span class="tag">behind the scenes</span></div>
+      <pre><span class="c-kw">var</span> name = <span class="c-kw">undefined</span>;  <span class="c-cmt">// ⬅ JS ne upar le aaya</span>
+<span class="c-fn">console</span>.log(name);     <span class="c-cmt">// undefined</span>
+name = <span class="c-str">"Alice"</span>;          <span class="c-cmt">// ab value mili</span>
+<span class="c-fn">console</span>.log(name);     <span class="c-cmt">// "Alice"</span></pre>
+    </div>
+  </div>
+
+  <!-- LET CONST -->
+  <div class="section-title">2 — let &amp; const Hoisting (TDZ)</div>
+  <div class="concept-card">
+    <div class="type-note red" style="margin-bottom:12px">let / const → hoist hote hain BUT initialize nahi hote → Temporal Dead Zone (TDZ)</div>
+    <p style="font-size:14px; color:var(--muted); margin-bottom:12px;">
+      <strong style="color:var(--text)">TDZ (Temporal Dead Zone)</strong> — woh period jab variable declare hua hai memory mein lekin abhi initialize nahi hua. Iss time mein access karo toh <span style="color:var(--red)">ReferenceError</span> aayega.
+    </p>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">let ka example</span><span class="tag">TDZ Error</span></div>
+      <pre><span class="c-fn">console</span>.log(age);  <span class="c-cmt">// ❌ ReferenceError!</span>
+<span class="c-kw">let</span> age = <span class="c-num">25</span>;
+<span class="c-fn">console</span>.log(age);  <span class="c-cmt">// ✅ 25</span></pre>
+      <div class="result-line result-err"><span class="icon">✕</span> ReferenceError: Cannot access 'age' before initialization</div>
+    </div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">const ka example</span><span class="tag">TDZ Error</span></div>
+      <pre><span class="c-fn">console</span>.log(PI);   <span class="c-cmt">// ❌ ReferenceError!</span>
+<span class="c-kw">const</span> PI = <span class="c-num">3.14</span>;
+<span class="c-fn">console</span>.log(PI);   <span class="c-cmt">// ✅ 3.14</span></pre>
+      <div class="result-line result-err"><span class="icon">✕</span> ReferenceError: Cannot access 'PI' before initialization</div>
+    </div>
+  </div>
+
+  <!-- FUNCTION DECLARATION -->
+  <div class="section-title">3 — Function Declaration Hoisting</div>
+  <div class="concept-card">
+    <div class="type-note green" style="margin-bottom:12px">Function declarations → POORI tarah hoist hoti hain (naam + body dono)</div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">Pehle call, baad mein define</span><span class="tag">Works! ✅</span></div>
+      <pre><span class="c-fn">greet</span>();                    <span class="c-cmt">// ✅ Kaam karega!</span>
+
+<span class="c-kw">function</span> <span class="c-fn">greet</span>() {
+  <span class="c-fn">console</span>.log(<span class="c-str">"Namaste!"</span>);
+}</pre>
+      <div class="result-line result-ok"><span class="icon">▶</span> "Namaste!"</div>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin-top:8px;">Kyunki function declaration mein naam aur poori body dono Phase 1 mein hi memory mein aa jaati hai.</p>
+  </div>
+
+  <!-- FUNCTION EXPRESSION -->
+  <div class="section-title">4 — Function Expression Hoisting</div>
+  <div class="concept-card">
+    <div class="type-note amber" style="margin-bottom:12px">Function expressions → variable ke rules follow karte hain (var/let/const ke hisaab se)</div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">var ke saath</span><span class="tag">TypeError</span></div>
+      <pre><span class="c-fn">sayHi</span>();                  <span class="c-cmt">// ❌ TypeError!</span>
+<span class="c-kw">var</span> sayHi = <span class="c-kw">function</span>() {
+  <span class="c-fn">console</span>.log(<span class="c-str">"Hi!"</span>);
+};</pre>
+      <div class="result-line result-err"><span class="icon">✕</span> TypeError: sayHi is not a function</div>
+    </div>
+    <p style="font-size:13px; color:var(--muted); margin:10px 0;">Kyunki <code style="font-family:var(--mono);color:#C792EA">var sayHi</code> hoist hua <code style="font-family:var(--mono);color:var(--amber)">undefined</code> ke saath — aur <code style="font-family:var(--mono)">undefined()</code> call karo toh TypeError aata hai.</p>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">let/const ke saath</span><span class="tag">ReferenceError</span></div>
+      <pre><span class="c-fn">sayBye</span>();                 <span class="c-cmt">// ❌ ReferenceError! (TDZ)</span>
+<span class="c-kw">const</span> sayBye = <span class="c-kw">function</span>() {
+  <span class="c-fn">console</span>.log(<span class="c-str">"Bye!"</span>);
+};</pre>
+      <div class="result-line result-err"><span class="icon">✕</span> ReferenceError: Cannot access 'sayBye' before initialization</div>
+    </div>
+  </div>
+
+  <!-- CLASS -->
+  <div class="section-title">5 — Class Hoisting</div>
+  <div class="concept-card">
+    <div class="type-note red" style="margin-bottom:12px">Classes → let/const ki tarah hoist hoti hain → TDZ apply hota hai</div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="label">Class example</span><span class="tag">ReferenceError</span></div>
+      <pre><span class="c-kw">const</span> obj = <span class="c-kw">new</span> <span class="c-fn">Car</span>();    <span class="c-cmt">// ❌ ReferenceError!</span>
+
+<span class="c-kw">class</span> <span class="c-fn">Car</span> {
+  constructor() {
+    <span class="c-kw">this</span>.brand = <span class="c-str">"Toyota"</span>;
+  }
+}</pre>
+      <div class="result-line result-err"><span class="icon">✕</span> ReferenceError: Cannot access 'Car' before initialization</div>
+    </div>
+  </div>
+
+  <!-- CHEATSHEET TABLE -->
+  <div class="section-title">Quick Reference Cheatsheet</div>
+  <table class="cheat-table">
+    <thead>
+      <tr>
+        <th>Declaration</th>
+        <th>Hoist Hota Hai?</th>
+        <th>Initialize?</th>
+        <th>Pehle Access karo toh?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>var</td>
+        <td><span style="color:var(--green)">✅ Haan</span></td>
+        <td><span style="color:var(--amber)">undefined</span></td>
+        <td><span style="color:var(--amber)">undefined milta hai</span></td>
+      </tr>
+      <tr>
+        <td>let</td>
+        <td><span style="color:var(--green)">✅ Haan</span></td>
+        <td><span style="color:var(--red)">❌ Nahi (TDZ)</span></td>
+        <td><span style="color:var(--red)">ReferenceError</span></td>
+      </tr>
+      <tr>
+        <td>const</td>
+        <td><span style="color:var(--green)">✅ Haan</span></td>
+        <td><span style="color:var(--red)">❌ Nahi (TDZ)</span></td>
+        <td><span style="color:var(--red)">ReferenceError</span></td>
+      </tr>
+      <tr>
+        <td>function declaration</td>
+        <td><span style="color:var(--green)">✅ Haan</span></td>
+        <td><span style="color:var(--green)">✅ Poori body</span></td>
+        <td><span style="color:var(--green)">Kaam karta hai ✅</span></td>
+      </tr>
+      <tr>
+        <td>function expression (var)</td>
+        <td><span style="color:var(--green)">✅ Haan</span></td>
+        <td><span style="color:var(--amber)">undefined</span></td>
+        <td><span style="color:var(--red)">TypeError</span></td>
+      </tr>
+      <tr>
+        <td>function expression (let/const)</td>
+        <td><span style="color:var(--green)">✅ Haan</span></td>
+        <td><span style="color:var(--red)">❌ Nahi (TDZ)</span></td>
+        <td><span style="color:var(--red)">ReferenceError</span></td>
+      </tr>
+      <tr>
+        <td>class</td>
+        <td><span style="color:var(--green)">✅ Haan</span></td>
+        <td><span style="color:var(--red)">❌ Nahi (TDZ)</span></td>
+        <td><span style="color:var(--red)">ReferenceError</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- INTERVIEW Q&A -->
+  <div class="section-title">Interview Q &amp; A</div>
+
+  <div class="qa-card">
+    <div class="qa-q">
+      <div class="qa-q-icon">Q1</div>
+      <p>Hoisting kya hota hai JavaScript mein? Simple words mein explain karo.</p>
+    </div>
+    <div class="qa-a">
+      Hoisting JavaScript ka ek behavior hai jisme code execute hone se pehle, engine poora code scan karta hai aur saari <strong>variable aur function declarations</strong> ko memory mein scope ke top par le jaata hai. Sirf <strong>declaration</strong> move hoti hai — value assignment wahin rehti hai jahan likhi hai.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">
+      <div class="qa-q-icon">Q2</div>
+      <p>var, let, aur const mein hoisting ka kya fark hai?</p>
+    </div>
+    <div class="qa-a">
+      Teeno hoist hote hain, lekin initialize alag tarike se hote hain.<br><br>
+      <strong>var</strong> → hoist hota hai aur <span class="highlight-ans">undefined</span> se initialize hota hai, isliye pehle access karo toh error nahi aata.<br><br>
+      <strong>let / const</strong> → hoist hote hain lekin initialize nahi hote — TDZ (Temporal Dead Zone) mein rehte hain. Pehle access karo toh <span class="highlight-ans">ReferenceError</span> aata hai.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">
+      <div class="qa-q-icon">Q3</div>
+      <p>TDZ (Temporal Dead Zone) kya hota hai?</p>
+    </div>
+    <div class="qa-a">
+      TDZ woh time period hota hai jab ek <strong>let/const variable ka scope shuru ho chuka hai</strong> lekin uski declaration line abhi execute nahi hui. Is period mein variable memory mein exist karta hai lekin usme koi value nahi hoti. Iss time access karo toh <span class="highlight-ans">ReferenceError</span> aata hai. Ye actually bugs pakadne ke liye helpful hai.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">
+      <div class="qa-q-icon">Q4</div>
+      <p>Function declaration aur function expression mein hoisting ka kya fark hai?</p>
+    </div>
+    <div class="qa-a">
+      <strong>Function declaration</strong> → poori tarah hoist hoti hai — naam aur body dono. Isliye declare karne se pehle call kar sakte hain.<br><br>
+      <strong>Function expression</strong> → sirf variable hoist hota hai (var hai toh undefined, let/const hai toh TDZ). Function body hoist nahi hoti. Isliye pehle call karo toh <span class="highlight-ans">TypeError</span> ya <span class="highlight-ans">ReferenceError</span> aata hai.
+    </div>
+  </div>
+
+  <div class="qa-card">
+    <div class="qa-q">
+      <div class="qa-q-icon">Q5</div>
+      <p>Yeh code kya output dega aur kyun?</p>
+    </div>
+    <div class="qa-a">
+      <div class="code-wrap" style="margin-bottom:10px">
+        <pre><span class="c-fn">console</span>.log(<span class="c-fn">foo</span>());
+<span class="c-fn">console</span>.log(<span class="c-fn">bar</span>());
+
+<span class="c-kw">function</span> <span class="c-fn">foo</span>() { <span class="c-kw">return</span> <span class="c-str">"foo called"</span>; }
+<span class="c-kw">var</span> bar = <span class="c-kw">function</span>() { <span class="c-kw">return</span> <span class="c-str">"bar called"</span>; };</pre>
+      </div>
+      <strong>foo()</strong> → <span class="highlight-ans">"foo called"</span> ✅ — kyunki function declaration poori hoist hoti hai.<br><br>
+      <strong>bar()</strong> → <span class="highlight-ans">TypeError: bar is not a function</span> ❌ — kyunki <code style="font-family:var(--mono);color:#C792EA">var bar</code> hoist hua <code style="font-family:var(--mono);color:var(--amber)">undefined</code> ke saath, aur <code style="font-family:var(--mono)">undefined()</code> call nahi kar sakte.
+    </div>
+  </div>
+
+  <!-- BEST PRACTICES -->
+  <div class="section-title">Best Practices</div>
+  <div class="tips-grid">
+    <div class="tip">
+      <div class="tip-icon">✦</div>
+      <div>
+        <strong>var avoid karo</strong>
+        let aur const use karo — TDZ ki wajah se bugs jaldi pakad mein aate hain.
+      </div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">✦</div>
+      <div>
+        <strong>Pehle declare, phir use karo</strong>
+        Code top-to-bottom padhne laayak rakho, hoisting pe rely mat karo.
+      </div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">✦</div>
+      <div>
+        <strong>Function expressions prefer karo</strong>
+        Arrow functions ya function expressions se code predictable rehta hai.
+      </div>
+    </div>
+    <div class="tip">
+      <div class="tip-icon">✦</div>
+      <div>
+        <strong>Class pehle define karo</strong>
+        Class TDZ mein rehti hai — hamesha pehle define karo, phir use karo.
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMORY TRICK -->
+  <div class="section-title">Yaad Rakhne Ka Trick</div>
+  <div class="memory-box">
+    <div class="mem-label">🧠 Memory Hook</div>
+    <div class="mem-text">
+      JavaScript pehle <span>scan</span> karta hai,<br>
+      phir <span>run</span> karta hai.
+    </div>
+    <div class="mem-sub">
+      Scan mein → declarations upar jaati hain &nbsp;|&nbsp; Run mein → values assign hoti hain
+    </div>
+  </div>
+
+  <!-- ONE LINER EACH -->
+  <div class="section-title" style="margin-top:2rem">Ek Line Summary — Har Type Ka</div>
+  <div style="display:flex; flex-direction:column; gap:8px; font-size:13px;">
+    <div style="display:flex; gap:12px; align-items:center; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <code style="font-family:var(--mono);color:#C792EA;min-width:160px">var</code>
+      <span style="color:var(--muted)">→ Hoist + undefined se shuru → Silently undefined deta hai, bug hide kar sakta hai ⚠️</span>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <code style="font-family:var(--mono);color:#82AAFF;min-width:160px">let / const</code>
+      <span style="color:var(--muted)">→ Hoist + TDZ → Pehle access = ReferenceError → Safer hai ✅</span>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <code style="font-family:var(--mono);color:var(--green);min-width:160px">function decl</code>
+      <span style="color:var(--muted)">→ Poori hoist → Kahi se bhi call karo, kaam karega ✅</span>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <code style="font-family:var(--mono);color:var(--amber);min-width:160px">function expr</code>
+      <span style="color:var(--muted)">→ Variable hoist, body nahi → Pehle call = TypeError ya ReferenceError ❌</span>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <code style="font-family:var(--mono);color:var(--red);min-width:160px">class</code>
+      <span style="color:var(--muted)">→ Hoist + TDZ (let jaise) → Pehle use = ReferenceError ❌</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  JavaScript Hoisting Notes — Interview Ready 🚀
+</div>
+
+</body>
+</html>
